@@ -1,0 +1,1888 @@
+
+
+
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.channel.concrete.Category;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.events.channel.ChannelDeleteEvent;
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.text.TextInput;
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import net.dv8tion.jda.api.interactions.modals.Modal;
+
+import java.awt.*;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+public class BotVendas extends ListenerAdapter {
+    private Map<String, Message> mensagem = new HashMap<>();
+    private Map<String, Message> embed = new HashMap<>();
+
+    private static Map<String, String> components = new HashMap<>();
+    int contador = 0;
+    String idCanal;
+    Message editMensagem;
+
+    String tituloEdit;
+    String cargoEdit;
+    String corEdit;
+    String imageEdit;
+    String descricaoEdit;
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    @Override
+    public void onMessageReceived(MessageReceivedEvent event) {
+        if(event.getMessage().getContentRaw().equalsIgnoreCase("!criarembed")){
+            if(event.getMember().hasPermission(Permission.ADMINISTRATOR)){
+                Emoji emoji = event.getGuild().getEmojiById("1329154840739184651");
+                Button criarCanal = Button.secondary("canalnovo", "Criar Embed").withEmoji(emoji);
+                event.getMessage().delete().queue();
+                TextChannel messageChannel = (TextChannel) event.getChannel();
+                messageChannel.sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setColor(Color.decode("#ffffff"))
+                        .setDescription(" ## CRIAR EMBED <:vx4:1329154840739184651>"
+                                        + "\n\n > **Para Criar um Embed, Basta Clicar no Botão Abaixo**"
+                                        + "\n > **e Seguir as Instruções do Bot.**")
+                                .setThumbnail("https://cdn.discordapp.com/attachments/1102285791000010833/1328836223837540383/rk_bots_logo.png?ex=678826ac&is=6786d52c&hm=5315ea7117f16d6baa6200b53f4413e721bd7ed0f64d2329678da6585169e3e8&")
+                        .build()).setActionRow(criarCanal).queue();
+            }else {
+                event.getMessage().reply("")
+                        .setEmbeds(new EmbedBuilder()
+                                .setDescription("❌ **COMANDO RESTRITO PARA ADMINISTRADOES!**")
+                                .setColor(Color.decode("#ffffff"))
+                                .build())
+                        .queue(message1 -> {
+                            scheduler.schedule(() -> {
+                                message1.delete().queue(); // Exclui a mensagem após 10 segundos
+                            }, 3, TimeUnit.SECONDS);
+                        });
+                event.getMessage().delete().queue();
+            }
+        }
+
+
+    }
+
+    @Override
+    public void onButtonInteraction(ButtonInteractionEvent event) {
+
+        if(event.getComponentId().equals("finalizarcanal")){
+            TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+            textChannel.delete().queue();
+        }
+
+
+        if(event.getComponentId().equals("canalnovo")){
+            if(event.getMember().hasPermission(Permission.ADMINISTRATOR)){
+                Guild guild = event.getGuild();
+                List<Category> categories = event.getGuild().getCategories();
+                String interactionChannelName = "\uD83D\uDE80〡embed";
+                Category category = event.getGuild().getCategoryById("1252460495374516305");
+                Button finalizarcanal = Button.danger("finalizarcanal", "❌ Excluir Canal");
+                Button criarEmbed = Button.secondary("criarembed", "✏\uFE0F Criar um Embed");
+
+                if(contador > 0){
+                    TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                    EmbedBuilder errorEmbed = new EmbedBuilder()
+                            .setDescription("**JÁ EXISTE UM EMBED SENDO CRIADO! **" + textChannel.getAsMention())
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(errorEmbed.build()).setEphemeral(true).queue();
+                    return;
+                }
+
+                guild.createTextChannel(interactionChannelName, category)
+                        .addPermissionOverride(event.getMember(), EnumSet.of(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND), EnumSet.noneOf(Permission.class))
+                        .addPermissionOverride(guild.getPublicRole(), EnumSet.noneOf(Permission.class), EnumSet.of(Permission.VIEW_CHANNEL))
+                        .setTopic(event.getUser().getId())
+                        .queue(channel -> {
+                            channel.sendMessage("")
+                                    .setEmbeds(new EmbedBuilder()
+                                            .setDescription(" ### CRIAR O EMBED"
+                                                        +"\n\n > **Para Criar UM Embed, Basta Clicar no Botão Abaixo e Seguir as Instruções do BOT!**\n\n"
+                                                        +"### EXCLUIR CANAL"
+                                                        +"\n\n > **Caso Você Tenha Aberto o Canal sem Querer, Basta Clicar no Botão Abaixo Para Excluir o Canal!**")
+                                            .setColor(Color.decode("#ffffff"))
+                                            .setImage("https://cdn.discordapp.com/attachments/1102285791000010833/1328836240551837706/banner_Neutro.png?ex=678826b0&is=6786d530&hm=127bc69d8413051c38485658d204e490b9122c80452a8c15694bcfffe6684475&")
+                                            .build())
+                                    .addActionRow(criarEmbed, finalizarcanal)
+                                    .queue( message -> {
+                                        mensagem.put(channel.getId(), message);
+                                    });
+                            String asMention = channel.getAsMention();
+
+                            EmbedBuilder successEmbed = new EmbedBuilder()
+                                    .setDescription("**SEU CANAL FOI CRIADO COM SUCESSO **" + asMention)
+                                    .setColor(Color.decode("#ffffff"));
+                            event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue();
+
+                            idCanal = channel.getId();
+                            contador++;
+
+                            scheduler.schedule(() -> {
+                                for (Category categoria : categories) {
+                                    if (categoria.getId().equals("1252460495374516305")) {
+                                        List<TextChannel> channels = categoria.getTextChannels();
+                                        for (TextChannel channel10 : channels) {
+                                            if (channel10.getId().equals(channel.getId())) {
+                                                channel.delete().queue();
+
+                                                event.getMember().getUser().openPrivateChannel().queue((channel1 -> {
+                                                    channel1.sendMessage("").setEmbeds(new EmbedBuilder()
+                                                            .setDescription("## FINALIZAMOS SEU EMBED"
+                                                                    + "\n > **Você Excedeu o seu Limite de 10 minutos Para Finalizar o seu Embed!**"
+                                                                    + "\n > ** Por Conta Disso, Encerramos seu Canal Automaticamente**")
+                                                            .setColor(Color.decode("#ffffff"))
+                                                            .build()).queue();
+                                                }));
+                                            }
+                                        }
+                                    }
+                                }
+                            }, 10, TimeUnit.MINUTES);
+                        });
+            }else {
+                event.getMessage().reply("")
+                    .setEmbeds(new EmbedBuilder()
+                            .setDescription("❌ **COMANDO RESTRITO PARA ADMINISTRADOES!**")
+                            .setColor(Color.decode("#ffffff"))
+                            .build())
+                    .queue(message1 -> {
+                        scheduler.schedule(() -> {
+                            message1.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 3, TimeUnit.SECONDS);
+                    });
+                event.getMessage().delete().queue();
+            }
+        }
+
+        if(event.getComponentId().equals("criarembed")){
+            mensagem.get(event.getChannel().getId()).delete().queue();
+            Button simTitulo = Button.success("simtitulo", "Sim");
+            Button naoTitulo = Button.danger("naotitulo", "Não");
+            event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                    .setColor(Color.decode("#ffffff"))
+                    .setDescription("**DESEJA ADICIONAR UM TÍTULO AO EMBED?**")
+                    .build()).setActionRow(simTitulo, naoTitulo).queue( message -> {
+                mensagem.put(event.getChannel().getId(), message);
+            });
+
+        }
+        if(event.getComponentId().equals("simtitulo")){
+            Modal modal = Modal.create("titulo", "Titulo")
+                    .addActionRow(
+                            TextInput.create("titulo", "Adicione um Título ao Embed", TextInputStyle.SHORT)
+                                    .setRequiredRange(1, 4000)
+                                    .build()
+                    )
+                    .build();
+            event.replyModal(modal).queue();
+        }
+
+        if(event.getComponentId().equals("naotitulo")){
+            mensagem.get(event.getChannel().getId()).delete().queue();
+            Button descricao = Button.secondary("descricao", "Descrição do Embed");
+            event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                    .setDescription("**DIGITE QUAL SERÁ A DESCRIÇÃO DO EMBED**")
+                    .setColor(Color.decode("#ffffff"))
+                    .build()).setActionRow(descricao).queue( message -> {
+                mensagem.put(event.getChannel().getId(), message);
+            });
+        }
+
+        if (event.getComponentId().equals("descricao")){
+            Modal modal = Modal.create("descricao", "DESCRIÇÃO")
+                    .addActionRow(
+                            TextInput.create("descricao", "Adicione uma Descrição ao Embed", TextInputStyle.PARAGRAPH)
+                                    .setRequiredRange(1, 4000)
+                                    .build()
+                    )
+                    .build();
+            event.replyModal(modal).queue();
+        }
+
+        if(event.getComponentId().equals("simcor")){
+            Modal modal = Modal.create("cor", "COR")
+                    .addActionRow(
+                            TextInput.create("cor", "Digite o Código da Cor Desejada", TextInputStyle.SHORT)
+                                    .setRequiredRange(1, 4000)
+                                    .build()
+                    )
+                    .build();
+            event.replyModal(modal).queue();
+        }
+
+        if(event.getComponentId().equals("naocor")){
+            mensagem.get(event.getChannel().getId()).delete().queue();
+
+                Button simimagem = Button.success("simimagem", "Sim");
+                Button naoimagem = Button.danger("naoimagem", "Não");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**DESEJA ADICIONAR UMA IMAGEM AO EMBED?**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(simimagem, naoimagem).queue(message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+
+        }
+
+        if(event.getComponentId().equals("simimagem")){
+            Modal modal = Modal.create("imagem", "IMAGEM")
+                    .addActionRow(
+                            TextInput.create("imagem", "Digite Link da Imagem ou Gif", TextInputStyle.SHORT)
+                                    .setRequiredRange(1, 4000)
+                                    .build()
+                    )
+                    .build();
+            event.replyModal(modal).queue();
+        }
+
+        if(event.getComponentId().equals("naoimagem")){
+            mensagem.get(event.getChannel().getId()).delete().queue();
+                Button simcargo = Button.success("simcargo", "Sim");
+                Button naocargo = Button.danger("naocargo", "Não");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**DESEJA MENCIONAR ALGUM CARGO?**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(simcargo, naocargo).queue(message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+
+        }
+
+        if(event.getComponentId().equals("simcargo")){
+            Modal modal = Modal.create("cargo", "CARGO")
+                    .addActionRow(
+                            TextInput.create("cargo", "Digite os Cargos que você Deseja Mencionar", TextInputStyle.SHORT)
+                                    .setRequiredRange(1, 4000)
+                                    .build()
+                    )
+                    .build();
+            event.replyModal(modal).queue();
+        }
+
+        if(event.getComponentId().equals("naocargo")){
+            mensagem.get(event.getChannel().getId()).delete().queue();
+            Button enviar = Button.success("enviar", "Enviar");
+            Button editar = Button.secondary("editar", "Editar");
+            event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                    .setDescription("**EMBED FINALIZADO**"
+                            +"\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                            +"\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                            +"\n > **Clique no Botão \"Editar\"**")
+                    .setColor(Color.decode("#ffffff"))
+                    .build()).setActionRow(enviar, editar).queue( message -> {
+                mensagem.put(event.getChannel().getId(), message);
+            });
+        }
+
+        if(event.getComponentId().equals("enviar")){
+            Modal modal = Modal.create("canal", "canal")
+                    .addActionRow(
+                            TextInput.create("canal", "Digite o ID do Canal", TextInputStyle.SHORT)
+                                    .setRequiredRange(1, 4000)
+                                    .build()
+                    )
+                    .build();
+            event.replyModal(modal).queue();
+        }
+
+
+        if(event.getComponentId().equals("editar")){
+            mensagem.get(event.getChannel().getId()).delete().queue();
+            Button titulo = Button.secondary("titulo1", "Titulo");
+            Button descricao = Button.secondary("descricao1", "Descrição");
+            Button cor = Button.secondary("cor1", "Cor");
+            Button imagem = Button.secondary("imagem1", "Imagem");
+            Button cargo = Button.secondary("cargo1", "Cargo");
+            Button enviar = Button.success("enviar", "Enviar");
+            Button remover = Button.danger("removercargo", "Remover Cargo");
+            event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                    .setDescription("**INFORME O QUE VOCÊ DESEJA ALTERAR!**")
+                    .setColor(Color.decode("#ffffff"))
+                    .build()).addActionRow(titulo, descricao, imagem).addActionRow(cor, cargo, remover).addActionRow(enviar).queue( message -> {
+                mensagem.put(event.getChannel().getId(), message);
+            });
+        }
+
+        if(event.getComponentId().equals("titulo1")){
+            Modal modal = Modal.create("titulo1", "Novo Titulo")
+                    .addActionRow(
+                            TextInput.create("titulo1", "Digite qual Será o Novo Titulo", TextInputStyle.SHORT)
+                                    .setRequiredRange(1, 4000)
+                                    .build()
+                    )
+                    .build();
+            event.replyModal(modal).queue();
+        }
+
+        if(event.getComponentId().equals("descricao1")){
+            Modal modal = Modal.create("descricao1", "Nova Descrição")
+                    .addActionRow(
+                            TextInput.create("descricao1", "Digite qual Será a Nova Descrição", TextInputStyle.PARAGRAPH)
+                                    .setRequiredRange(1, 4000)
+                                    .build()
+                    )
+                    .build();
+            event.replyModal(modal).queue();
+        }
+
+        if(event.getComponentId().equals("cor1")){
+            Modal modal = Modal.create("cor1", "Nova Cor")
+                    .addActionRow(
+                            TextInput.create("cor1", "Digite qual Será a Nova Cor", TextInputStyle.SHORT)
+                                    .setRequiredRange(1, 4000)
+                                    .build()
+                    )
+                    .build();
+            event.replyModal(modal).queue();
+        }
+
+        if(event.getComponentId().equals("imagem1")){
+            Modal modal = Modal.create("imagem1", "Nova Imagem")
+                    .addActionRow(
+                            TextInput.create("imagem1", "Digite qual Será a Nova Imagem", TextInputStyle.SHORT)
+                                    .setRequiredRange(1, 4000)
+                                    .build()
+                    )
+                    .build();
+            event.replyModal(modal).queue();
+        }
+
+        if(event.getComponentId().equals("cargo1")){
+            Modal modal = Modal.create("cargo1", "Novo(s) Cargo(s)")
+                    .addActionRow(
+                            TextInput.create("cargo1", "Digite o(s) Cargo(s) que Serão Mencionados", TextInputStyle.SHORT)
+                                    .setRequiredRange(1, 4000)
+                                    .build()
+                    )
+                    .build();
+            event.replyModal(modal).queue();
+        }
+
+        if(event.getComponentId().equals("removercargo")){
+            if(!components.containsKey("cargo")){
+                event.replyEmbeds(new EmbedBuilder()
+                        .setDescription("**NÃO EXITE NENHUM CARGO NO EMBED**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setEphemeral(true).queue();
+                return;
+            }
+            components.remove("cargo");
+            event.reply("").queue( message -> {
+                message.deleteOriginal().queue();
+            });
+
+            TextChannel channel = (TextChannel) event.getChannel();
+            channel.getHistory().retrievePast(10).queue(messages -> {
+                for(Message messageteste : messages) {
+                    if (messageteste.getId().equals(embed.get(event.getChannel().getId()).getId())) {
+                        event.getChannel().getHistory().retrievePast(10).queue(messages1 -> {
+                            event.getChannel().purgeMessages(messages1);
+                        });
+                        scheduler.schedule(() -> {
+                        event.getChannel().sendMessage("").setEmbeds(messageteste.getEmbeds().get(0)).queue(message -> {
+                            embed.put(event.getChannel().getId(), message);
+                        });
+
+                            Button enviar = Button.success("enviar", "Enviar");
+                            Button editar = Button.secondary("editar", "Editar");
+                            event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                                    .setDescription("**EMBED FINALIZADO**"
+                                            + "\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                            + "\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                            + "\n > **Clique no Botão \"Editar\"**")
+                                    .setColor(Color.decode("#ffffff"))
+                                    .build()).setActionRow(enviar, editar).queue(message2 -> {
+                                mensagem.put(event.getChannel().getId(), message2);
+                            });
+                        }, 1, TimeUnit.SECONDS);
+                    }
+                }
+            });
+        }
+
+    }
+
+    @Override
+    public void onModalInteraction(ModalInteractionEvent event) {
+
+        if(event.getModalId().equals("titulo1")){
+            tituloEdit = (event.getValue("titulo1").getAsString());
+
+            event.reply("").queue( message -> {
+                message.deleteOriginal().queue();
+            });
+
+            TextChannel channel = (TextChannel) event.getChannel();
+            channel.getHistory().retrievePast(10).queue(messages -> {
+                for(Message messageteste : messages) {
+                    if (messageteste.getId().equals(embed.get(event.getChannel().getId()).getId())) {
+                        event.getChannel().getHistory().retrievePast(10).queue(messages1 -> {
+                            event.getChannel().purgeMessages(messages1);
+                        });
+                        if (!components.containsKey("cargo")) {
+                            scheduler.schedule(() -> {
+                                event.getChannel().sendMessage("").setEmbeds(tituloModifiedEmbed(messageteste.getEmbeds().get(0))).queue(message -> {
+                                    embed.put(event.getChannel().getId(), message);
+                                });
+
+                                Button enviar = Button.success("enviar", "Enviar");
+                                Button editar = Button.secondary("editar", "Editar");
+                                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                                        .setDescription("**EMBED FINALIZADO**"
+                                                + "\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                                + "\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                                + "\n > **Clique no Botão \"Editar\"**")
+                                        .setColor(Color.decode("#ffffff"))
+                                        .build()).setActionRow(enviar, editar).queue(message2 -> {
+                                    mensagem.put(event.getChannel().getId(), message2);
+                                });
+                            }, 1, TimeUnit.SECONDS);
+                        } else {
+                            scheduler.schedule(() -> {
+                            event.getChannel().sendMessage(components.get("cargo")).setEmbeds(tituloModifiedEmbed(messageteste.getEmbeds().get(0))).queue(message -> {
+                                embed.put(event.getChannel().getId(), message);
+                            });
+
+                                Button enviar = Button.success("enviar", "Enviar");
+                                Button editar = Button.secondary("editar", "Editar");
+                                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                                        .setDescription("**EMBED FINALIZADO**"
+                                                + "\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                                + "\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                                + "\n > **Clique no Botão \"Editar\"**")
+                                        .setColor(Color.decode("#ffffff"))
+                                        .build()).setActionRow(enviar, editar).queue(message2 -> {
+                                    mensagem.put(event.getChannel().getId(), message2);
+                                });
+                            }, 1, TimeUnit.SECONDS);
+                        }
+                    }
+                }
+            });
+        }
+
+        if(event.getModalId().equals("descricao1")){
+            descricaoEdit = (event.getValue("descricao1").getAsString());
+            event.reply("").queue( message -> {
+                message.deleteOriginal().queue();
+            });
+
+            TextChannel channel = (TextChannel) event.getChannel();
+            channel.getHistory().retrievePast(10).queue(messages -> {
+
+                for(Message messageteste : messages) {
+                    if (messageteste.getId().equals(embed.get(event.getChannel().getId()).getId())) {
+                        event.getChannel().getHistory().retrievePast(5).queue(messages1 -> {
+                            event.getChannel().purgeMessages(messages1);
+                        });
+                        if (!components.containsKey("cargo")) {
+                            scheduler.schedule(() -> {
+                            event.getChannel().sendMessage("").setEmbeds(descricaoModifiedEmbed(messageteste.getEmbeds().get(0))).queue(message -> {
+                                embed.put(event.getChannel().getId(), message);
+                            });
+
+                                Button enviar = Button.success("enviar", "Enviar");
+                                Button editar = Button.secondary("editar", "Editar");
+                                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                                        .setDescription("**EMBED FINALIZADO**"
+                                                + "\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                                + "\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                                + "\n > **Clique no Botão \"Editar\"**")
+                                        .setColor(Color.decode("#ffffff"))
+                                        .build()).setActionRow(enviar, editar).queue(message2 -> {
+                                    mensagem.put(event.getChannel().getId(), message2);
+                                });
+                            }, 1, TimeUnit.SECONDS);
+
+                        } else {
+                            scheduler.schedule(() -> {
+                            event.getChannel().sendMessage(components.get("cargo")).setEmbeds(descricaoModifiedEmbed(messageteste.getEmbeds().get(0))).queue(message -> {
+                                embed.put(event.getChannel().getId(), message);
+                            });
+
+                                Button enviar = Button.success("enviar", "Enviar");
+                                Button editar = Button.secondary("editar", "Editar");
+                                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                                        .setDescription("**EMBED FINALIZADO**"
+                                                + "\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                                + "\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                                + "\n > **Clique no Botão \"Editar\"**")
+                                        .setColor(Color.decode("#ffffff"))
+                                        .build()).setActionRow(enviar, editar).queue(message2 -> {
+                                    mensagem.put(event.getChannel().getId(), message2);
+                                });
+                            }, 1, TimeUnit.SECONDS);
+                        }
+                    }
+                }
+            });
+        }
+
+        if(event.getModalId().equals("cor1")){
+            corEdit = (event.getValue("cor1").getAsString());
+
+            try {
+                EmbedBuilder teste = new EmbedBuilder()
+                        .setDescription(" as")
+                        .setColor(Color.decode(corEdit));
+            }catch (Exception e){
+                EmbedBuilder successEmbed = new EmbedBuilder()
+                        .setDescription("**CÓDIGO DA COR INVÁLIDO**"
+                                + "\n\n **Para Adicionar uma Cor Válida Entre no Site Color-hex e Copie o Código da Cor, Igual o Exemplo ao Lado: #8a4d4d**")
+                        .setColor(Color.decode("#ffffff"));
+                event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue();
+                return;
+            }
+
+            event.reply("").queue( message -> {
+                message.deleteOriginal().queue();
+            });
+
+            TextChannel channel = (TextChannel) event.getChannel();
+            channel.getHistory().retrievePast(10).queue(messages -> {
+                for(Message messageteste : messages) {
+                    if (messageteste.getId().equals(embed.get(event.getChannel().getId()).getId())) {
+                        event.getChannel().getHistory().retrievePast(10).queue(messages1 -> {
+                            event.getChannel().purgeMessages(messages1);
+                        });
+                        if (!components.containsKey("cargo")) {
+                            scheduler.schedule(() -> {
+                            event.getChannel().sendMessage("").setEmbeds(corModifiedEmbed(messageteste.getEmbeds().get(0))).queue(message -> {
+                                embed.put(event.getChannel().getId(), message);
+                            });
+
+                                Button enviar = Button.success("enviar", "Enviar");
+                                Button editar = Button.secondary("editar", "Editar");
+                                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                                        .setDescription("**EMBED FINALIZADO**"
+                                                + "\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                                + "\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                                + "\n > **Clique no Botão \"Editar\"**")
+                                        .setColor(Color.decode("#ffffff"))
+                                        .build()).setActionRow(enviar, editar).queue(message2 -> {
+                                    mensagem.put(event.getChannel().getId(), message2);
+                                });
+                            }, 1, TimeUnit.SECONDS);
+                        } else {
+                            scheduler.schedule(() -> {
+                            event.getChannel().sendMessage(components.get("cargo")).setEmbeds(corModifiedEmbed(messageteste.getEmbeds().get(0))).queue(message -> {
+                                embed.put(event.getChannel().getId(), message);
+                            });
+
+                                Button enviar = Button.success("enviar", "Enviar");
+                                Button editar = Button.secondary("editar", "Editar");
+                                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                                        .setDescription("**EMBED FINALIZADO**"
+                                                + "\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                                + "\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                                + "\n > **Clique no Botão \"Editar\"**")
+                                        .setColor(Color.decode("#ffffff"))
+                                        .build()).setActionRow(enviar, editar).queue(message2 -> {
+                                    mensagem.put(event.getChannel().getId(), message2);
+                                });
+                            }, 1, TimeUnit.SECONDS);
+                        }
+                    }
+                }
+
+            });
+
+        }
+
+        if(event.getModalId().equals("imagem1")){
+            imageEdit = (event.getValue("imagem1").getAsString());
+            event.reply("").queue( message -> {
+                message.deleteOriginal().queue();
+            });
+
+            TextChannel channel = (TextChannel) event.getChannel();
+            channel.getHistory().retrievePast(10).queue(messages -> {
+                for(Message messageteste : messages) {
+                    if (messageteste.getId().equals(embed.get(event.getChannel().getId()).getId())) {
+                        event.getChannel().getHistory().retrievePast(10).queue(messages1 -> {
+                            event.getChannel().purgeMessages(messages1);
+                        });
+                        if (!components.containsKey("cargo")) {
+                            scheduler.schedule(() -> {
+                            event.getChannel().sendMessage("").setEmbeds(imagemModifiedEmbed(messageteste.getEmbeds().get(0))).queue(message -> {
+                                embed.put(event.getChannel().getId(), message);
+                            });
+                            }, 1, TimeUnit.SECONDS);
+                            scheduler.schedule(() -> {
+                                Button enviar = Button.success("enviar", "Enviar");
+                                Button editar = Button.secondary("editar", "Editar");
+                                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                                        .setDescription("**EMBED FINALIZADO**"
+                                                + "\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                                + "\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                                + "\n > **Clique no Botão \"Editar\"**")
+                                        .setColor(Color.decode("#ffffff"))
+                                        .build()).setActionRow(enviar, editar).queue(message2 -> {
+                                    mensagem.put(event.getChannel().getId(), message2);
+                                });
+                            }, 2, TimeUnit.SECONDS);
+                        } else {
+                            scheduler.schedule(() -> {
+                            event.getChannel().sendMessage(components.get("cargo")).setEmbeds(imagemModifiedEmbed(messageteste.getEmbeds().get(0))).queue(message -> {
+                                embed.put(event.getChannel().getId(), message);
+                            });
+                            }, 1, TimeUnit.SECONDS);
+                            scheduler.schedule(() -> {
+                                Button enviar = Button.success("enviar", "Enviar");
+                                Button editar = Button.secondary("editar", "Editar");
+                                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                                        .setDescription("**EMBED FINALIZADO**"
+                                                + "\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                                + "\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                                + "\n > **Clique no Botão \"Editar\"**")
+                                        .setColor(Color.decode("#ffffff"))
+                                        .build()).setActionRow(enviar, editar).queue(message2 -> {
+                                    mensagem.put(event.getChannel().getId(), message2);
+                                });
+                            }, 2, TimeUnit.SECONDS);
+                        }
+                    }
+                }
+            });
+        }
+
+        if(event.getModalId().equals("cargo1")){
+            cargoEdit = (event.getValue("cargo1").getAsString());
+            components.put("cargo", cargoEdit);
+            event.reply("").queue( message -> {
+                message.deleteOriginal().queue();
+            });
+
+            TextChannel channel = (TextChannel) event.getChannel();
+            channel.getHistory().retrievePast(10).queue(messages -> {
+                for(Message messageteste : messages) {
+                    if (messageteste.getId().equals(embed.get(event.getChannel().getId()).getId())) {
+                        event.getChannel().getHistory().retrievePast(10).queue(messages1 -> {
+                            event.getChannel().purgeMessages(messages1);
+                        });
+                        scheduler.schedule(() -> {
+                        event.getChannel().sendMessage(cargoEdit).setEmbeds(messageteste.getEmbeds().get(0)).queue(message -> {
+                            embed.put(event.getChannel().getId(), message);
+                        });
+
+                            Button enviar = Button.success("enviar", "Enviar");
+                            Button editar = Button.secondary("editar", "Editar");
+                            event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                                    .setDescription("**EMBED FINALIZADO**"
+                                            + "\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                            + "\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                            + "\n > **Clique no Botão \"Editar\"**")
+                                    .setColor(Color.decode("#ffffff"))
+                                    .build()).setActionRow(enviar, editar).queue(message2 -> {
+                                mensagem.put(event.getChannel().getId(), message2);
+                            });
+                        }, 1, TimeUnit.SECONDS);
+                    }
+                }
+            });
+
+        }
+
+
+
+
+        if (event.getModalId().equals("titulo")){
+            String titulo = (event.getValue("titulo").getAsString());
+            event.getChannel().sendMessage("***ABAIXO O RESULTADO DE COMO O EMBED ESTA FICANDO:***").setEmbeds(new EmbedBuilder()
+                            .setTitle(titulo)
+                    .build()).queue( message -> {
+                        embed.put(event.getChannel().getId(), message);
+            });
+
+
+            Button descricao = Button.secondary("descricao", "Descrição do Embed");
+            event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                    .setDescription("**DIGITE QUAL SERÁ A DESCRIÇÃO DO EMBED**")
+                    .setColor(Color.decode("#ffffff"))
+                    .build()).setActionRow(descricao).queue( message -> {
+                mensagem.put(event.getChannel().getId(), message);
+            });
+            mensagem.get(event.getChannel().getId()).delete().queue();
+            components.put("titulo", titulo);
+            event.reply("").queue( message -> {
+                message.deleteOriginal().queue();
+            });
+        }
+
+        if(event.getModalId().equals("descricao")){
+            String descricao = (event.getValue("descricao").getAsString());
+
+            if(components.containsKey("titulo")){
+                mensagem.get(event.getChannel().getId()).delete().queue();
+                embed.get(event.getChannel().getId()).delete().queue();
+                event.getChannel().sendMessage("***ABAIXO O RESULTADO DE COMO O EMBED ESTA FICANDO:***").setEmbeds(new EmbedBuilder()
+                        .setTitle(components.get("titulo"))
+                        .setDescription(descricao)
+                        .build()).queue( message -> {
+                    embed.put(event.getChannel().getId(), message);
+                });
+                components.put("descricao", descricao);
+                event.reply("").queue( message -> {
+                    message.deleteOriginal().queue();
+                });
+
+                Button simcor = Button.success("simcor", "Sim");
+                Button naocor = Button.danger("naocor", "Não");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**DESEJA ADICIONAR UMA COR AO EMBED?**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(simcor, naocor).queue( message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+
+
+            } else {
+                mensagem.get(event.getChannel().getId()).delete().queue();
+                event.getChannel().sendMessage("***ABAIXO O RESULTADO DE COMO O EMBED ESTA FICANDO:***").setEmbeds(new EmbedBuilder()
+                        .setDescription(descricao)
+                        .build()).queue( message -> {
+                    embed.put(event.getChannel().getId(), message);
+                });
+                components.put("descricao", descricao);
+                event.reply("").queue( message -> {
+                    message.deleteOriginal().queue();
+                });
+
+                Button simcor = Button.success("simcor", "Sim");
+                Button naocor = Button.danger("naocor", "Não");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**DESEJA ADICIONAR UMA COR AO EMBED?**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(simcor, naocor).queue( message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+            }
+        }
+
+        if(event.getModalId().equals("cor")){
+            String cor = (event.getValue("cor").getAsString());
+            if(components.containsKey("titulo") && components.containsKey("descricao")){
+                try {
+                    EmbedBuilder teste = new EmbedBuilder()
+                            .setDescription(" as")
+                            .setColor(Color.decode(cor));
+                }catch (Exception e){
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**CÓDIGO DA COR INVÁLIDO**"
+                                            + "\n\n **Para Adicionar uma Cor Válida Entre no Site Color-hex e Copie o Código da Cor, Igual o Exemplo ao Lado: #8a4d4d**")
+                            .setColor(Color.decode("#190681"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue();
+                    return;
+                }
+                embed.get(event.getChannel().getId()).delete().queue();
+                event.getChannel().sendMessage("***ABAIXO O RESULTADO DE COMO O EMBED ESTA FICANDO:***").setEmbeds(new EmbedBuilder()
+                        .setTitle(components.get("titulo"))
+                        .setDescription(components.get("descricao"))
+                        .setColor(Color.decode(cor))
+                        .build()).queue(message -> {
+                    embed.put(event.getChannel().getId(), message);
+                });
+
+                components.put("cor", cor);
+                event.reply("").queue(message -> {
+                    message.deleteOriginal().queue();
+                });
+                mensagem.get(event.getChannel().getId()).delete().queue();
+
+                Button simimagem = Button.success("simimagem", "Sim");
+                Button naoimagem = Button.danger("naoimagem", "Não");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**DESEJA ADICIONAR UMA IMAGEM AO EMBED?**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(simimagem, naoimagem).queue( message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+            } else {
+                try {
+                    EmbedBuilder teste = new EmbedBuilder()
+                            .setDescription(" as")
+                            .setColor(Color.decode(cor));
+                }catch (Exception e){
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**CÓDIGO DA COR INVÁLIDO**"
+                                    + "\n\n **Para Adicionar uma Cor Válida Entre no Site Color-hex e Copie o Código da Cor, Igual o Exemplo ao Lado: #8a4d4d**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue();
+                    return;
+                }
+                embed.get(event.getChannel().getId()).delete().queue();
+                event.getChannel().sendMessage("***COMO O EMBED ESTA FICANDO\n***").setEmbeds(new EmbedBuilder()
+                        .setDescription(components.get("descricao"))
+                        .setColor(Color.decode(cor))
+                        .build()).queue(message -> {
+                    embed.put(event.getChannel().getId(), message);
+                });
+                components.put("cor", cor);
+                event.reply("").queue(message -> {
+                    message.deleteOriginal().queue();
+                });
+                mensagem.get(event.getChannel().getId()).delete().queue();
+
+                Button simimagem = Button.success("simimagem", "Sim");
+                Button naoimagem = Button.danger("naoimagem", "Não");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**DESEJA ADICIONAR UMA IMAGEM AO EMBED?**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(simimagem, naoimagem).queue( message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+            }
+        }
+
+        if(event.getModalId().equals("imagem")){
+            String imagem = (event.getValue("imagem").getAsString());
+            if(components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor")){
+                embed.get(event.getChannel().getId()).delete().queue();
+                event.getChannel().sendMessage("***ABAIXO O RESULTADO DE COMO O EMBED ESTA FICANDO:***").setEmbeds(new EmbedBuilder()
+                        .setTitle(components.get("titulo"))
+                        .setDescription(components.get("descricao"))
+                        .setImage(imagem)
+                        .build()).queue(message -> {
+                    embed.put(event.getChannel().getId(), message);
+                });
+
+                components.put("imagem", imagem);
+                event.reply("").queue(message -> {
+                    message.deleteOriginal().queue();
+                });
+                mensagem.get(event.getChannel().getId()).delete().queue();
+
+
+                Button simcargo = Button.success("simcargo", "Sim");
+                Button naocargo = Button.danger("naocargo", "Não");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**DESEJA MENCIONAR ALGUM CARGO?**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(simcargo, naocargo).queue( message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+
+            }else if (components.containsKey("descricao") && components.containsKey("cor") && !components.containsKey("titulo")){
+                embed.get(event.getChannel().getId()).delete().queue();
+                event.getChannel().sendMessage("***ABAIXO O RESULTADO DE COMO O EMBED ESTA FICANDO:***").setEmbeds(new EmbedBuilder()
+                        .setDescription(components.get("descricao"))
+                        .setColor(Color.decode(components.get("cor")))
+                        .setImage(imagem)
+                        .build()).queue(message -> {
+                    embed.put(event.getChannel().getId(), message);
+                });
+
+                components.put("imagem", imagem);
+                event.reply("").queue(message -> {
+                    message.deleteOriginal().queue();
+                });
+                mensagem.get(event.getChannel().getId()).delete().queue();
+
+                Button simcargo = Button.success("simcargo", "Sim");
+                Button naocargo = Button.danger("naocargo", "Não");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**DESEJA MENCIONAR ALGUM CARGO?**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(simcargo, naocargo).queue( message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+
+
+            } else if(components.containsKey("descricao") && !components.containsKey("cor") && !components.containsKey("titulo") ) {
+                embed.get(event.getChannel().getId()).delete().queue();
+                event.getChannel().sendMessage("***ABAIXO O RESULTADO DE COMO O EMBED ESTA FICANDO:***").setEmbeds(new EmbedBuilder()
+                        .setDescription(components.get("descricao"))
+                                .setImage(imagem)
+                        .build()).queue(message -> {
+                    embed.put(event.getChannel().getId(), message);
+                });
+
+                components.put("imagem", imagem);
+                event.reply("").queue(message -> {
+                    message.deleteOriginal().queue();
+                });
+                mensagem.get(event.getChannel().getId()).delete().queue();
+
+                Button simcargo = Button.success("simcargo", "Sim");
+                Button naocargo = Button.danger("naocargo", "Não");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**DESEJA MENCIONAR ALGUM CARGO?**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(simcargo, naocargo).queue( message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+
+            } else {
+                embed.get(event.getChannel().getId()).delete().queue();
+                event.getChannel().sendMessage("***ABAIXO O RESULTADO DE COMO O EMBED ESTA FICANDO:***").setEmbeds(new EmbedBuilder()
+                        .setTitle(components.get("titulo"))
+                        .setDescription(components.get("descricao"))
+                        .setColor(Color.decode(components.get("cor")))
+                        .setImage(imagem)
+                        .build()).queue(message -> {
+                    embed.put(event.getChannel().getId(), message);
+                });
+
+                components.put("imagem", imagem);
+                event.reply("").queue(message -> {
+                    message.deleteOriginal().queue();
+                });
+                mensagem.get(event.getChannel().getId()).delete().queue();
+
+                Button simcargo = Button.success("simcargo", "Sim");
+                Button naocargo = Button.danger("naocargo", "Não");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**DESEJA MENCIONAR ALGUM CARGO?**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(simcargo, naocargo).queue( message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+
+            }
+        }
+
+        if(event.getModalId().equals("cargo")){
+            String cargo = (event.getValue("cargo").getAsString());
+            if(components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && components.containsKey("imagem")){
+                event.getChannel().getHistory().retrievePast(10).queue(messages -> {
+                    event.getChannel().purgeMessages(messages);
+                });
+                scheduler.schedule(() -> {
+                event.getChannel().sendMessage(cargo).setEmbeds(new EmbedBuilder()
+                                .setTitle(components.get("titulo"))
+                        .setDescription(components.get("descricao"))
+                        .setColor(Color.decode(components.get("cor")))
+                        .setImage(components.get("imagem"))
+                        .build()).queue(message -> {
+                    embed.put(event.getChannel().getId(), message);
+                });
+
+                components.put("cargo", cargo);
+                event.reply("").queue(message -> {
+                    message.deleteOriginal().queue();
+                });
+
+                Button enviar = Button.success("enviar", "Enviar");
+                Button editar = Button.secondary("editar", "Editar");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**EMBED FINALIZADO**"
+                                        +"\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                        +"\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                        +"\n > **Clique no Botão \"Editar\"**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(enviar, editar).queue( message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+                }, 1, TimeUnit.SECONDS);
+
+            } else if (components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && !components.containsKey("imagem")){
+                event.getChannel().getHistory().retrievePast(5).queue(messages -> {
+                    event.getChannel().purgeMessages(messages);
+                });
+                scheduler.schedule(() -> {
+                event.getChannel().sendMessage(cargo).setEmbeds(new EmbedBuilder()
+                        .setTitle(components.get("titulo"))
+                        .setDescription(components.get("descricao"))
+                        .setColor(Color.decode(components.get("cor")))
+                        .build()).queue(message -> {
+                    embed.put(event.getChannel().getId(), message);
+                });
+
+                components.put("cargo", cargo);
+                event.reply("").queue(message -> {
+                    message.deleteOriginal().queue();
+                });
+
+                Button enviar = Button.success("enviar", "Enviar");
+                Button editar = Button.secondary("editar", "Editar");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**EMBED FINALIZADO**"
+                                +"\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                +"\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                +"\n > **Clique no Botão \"Editar\"**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(enviar, editar).queue( message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+                }, 1, TimeUnit.SECONDS);
+
+            }else if (components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && components.containsKey("imagem")){
+                event.getChannel().getHistory().retrievePast(10).queue(messages -> {
+                    event.getChannel().purgeMessages(messages);
+                });
+
+                scheduler.schedule(() -> {
+                event.getChannel().sendMessage(cargo).setEmbeds(new EmbedBuilder()
+                        .setTitle(components.get("titulo"))
+                        .setDescription(components.get("descricao"))
+                        .setImage(components.get("imagem"))
+                        .build()).queue(message -> {
+                    embed.put(event.getChannel().getId(), message);
+                });
+
+                components.put("cargo", cargo);
+                event.reply("").queue(message -> {
+                    message.deleteOriginal().queue();
+                });
+
+                Button enviar = Button.success("enviar", "Enviar");
+                Button editar = Button.secondary("editar", "Editar");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**EMBED FINALIZADO**"
+                                +"\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                +"\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                +"\n > **Clique no Botão \"Editar\"**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(enviar, editar).queue( message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+
+            }, 1, TimeUnit.SECONDS);
+            }else if (!components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && components.containsKey("imagem")){
+                event.getChannel().getHistory().retrievePast(10).queue(messages -> {
+                    event.getChannel().purgeMessages(messages);
+                });
+
+                scheduler.schedule(() -> {
+                event.getChannel().sendMessage(cargo).setEmbeds(new EmbedBuilder()
+                        .setDescription(components.get("descricao"))
+                        .setColor(Color.decode(components.get("cor")))
+                        .setImage(components.get("imagem"))
+                        .build()).queue(message -> {
+                    embed.put(event.getChannel().getId(), message);
+                });
+
+                components.put("cargo", cargo);
+                event.reply("").queue(message -> {
+                    message.deleteOriginal().queue();
+                });
+
+                Button enviar = Button.success("enviar", "Enviar");
+                Button editar = Button.secondary("editar", "Editar");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**EMBED FINALIZADO**"
+                                +"\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                +"\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                +"\n > **Clique no Botão \"Editar\"**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(enviar, editar).queue( message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+                }, 1, TimeUnit.SECONDS);
+
+
+            } else if(components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && !components.containsKey("imagem")){
+                event.getChannel().getHistory().retrievePast(10).queue(messages -> {
+                    event.getChannel().purgeMessages(messages);
+                });
+
+                scheduler.schedule(() -> {
+                event.getChannel().sendMessage(cargo).setEmbeds(new EmbedBuilder()
+                        .setTitle(components.get("titulo"))
+                        .setDescription(components.get("descricao"))
+                        .build()).queue(message -> {
+                    embed.put(event.getChannel().getId(), message);
+                });
+
+                components.put("cargo", cargo);
+                event.reply("").queue(message -> {
+                    message.deleteOriginal().queue();
+                });
+
+                Button enviar = Button.success("enviar", "Enviar");
+                Button editar = Button.secondary("editar", "Editar");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**EMBED FINALIZADO**"
+                                +"\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                +"\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                +"\n > **Clique no Botão \"Editar\"**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(enviar, editar).queue( message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+                }, 1, TimeUnit.SECONDS);
+
+
+            } else if(!components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && !components.containsKey("imagem")) {
+                event.getChannel().getHistory().retrievePast(10).queue(messages -> {
+                    event.getChannel().purgeMessages(messages);
+                });
+                scheduler.schedule(() -> {
+                event.getChannel().sendMessage(cargo).setEmbeds(new EmbedBuilder()
+                        .setDescription(components.get("descricao"))
+                        .setColor(Color.decode(components.get("cor")))
+                        .build()).queue(message -> {
+                    embed.put(event.getChannel().getId(), message);
+                });
+
+                components.put("cargo", cargo);
+                event.reply("").queue(message -> {
+                    message.deleteOriginal().queue();
+                });
+
+                Button enviar = Button.success("enviar", "Enviar");
+                Button editar = Button.secondary("editar", "Editar");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**EMBED FINALIZADO**"
+                                +"\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                +"\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                +"\n > **Clique no Botão \"Editar\"**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(enviar, editar).queue( message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+                }, 1, TimeUnit.SECONDS);
+
+
+            } else if(!components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && components.containsKey("imagem")) {
+                event.getChannel().getHistory().retrievePast(10).queue(messages -> {
+                    event.getChannel().purgeMessages(messages);
+                });
+
+                scheduler.schedule(() -> {
+                event.getChannel().sendMessage(cargo).setEmbeds(new EmbedBuilder()
+                        .setDescription(components.get("descricao"))
+                        .setImage(components.get("imagem"))
+                        .build()).queue(message -> {
+                    embed.put(event.getChannel().getId(), message);
+                });
+
+                components.put("cargo", cargo);
+                event.reply("").queue();
+
+                Button enviar = Button.success("enviar", "Enviar");
+                Button editar = Button.secondary("editar", "Editar");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**EMBED FINALIZADO**"
+                                +"\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                +"\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                +"\n > **Clique no Botão \"Editar\"**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(enviar, editar).queue( message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+                }, 1, TimeUnit.SECONDS);
+            } else {
+                event.getChannel().getHistory().retrievePast(10).queue(messages -> {
+                    event.getChannel().purgeMessages(messages);
+                });
+
+                scheduler.schedule(() -> {
+                event.getChannel().sendMessage(cargo).setEmbeds(new EmbedBuilder()
+                        .setDescription(components.get("descricao"))
+                        .build()).queue(message -> {
+                    embed.put(event.getChannel().getId(), message);
+                });
+
+                components.put("cargo", cargo);
+                event.reply("").queue(message -> {
+                    message.deleteOriginal().queue();
+                });
+
+                Button enviar = Button.success("enviar", "Enviar");
+                Button editar = Button.secondary("editar", "Editar");
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**EMBED FINALIZADO**"
+                                +"\n\n > **Para Enviar o Embed, Basta Clicar no Botão \"Enviar\"**"
+                                +"\n\n > **Caso Ainda Queira Realizar Alterações no Embed,**"
+                                +"\n > **Clique no Botão \"Editar\"**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setActionRow(enviar, editar).queue( message -> {
+                    mensagem.put(event.getChannel().getId(), message);
+                });
+                }, 1, TimeUnit.SECONDS);
+            }
+        }
+
+
+
+        if(event.getModalId().equals("canal")){
+            String canal = (event.getValue("canal").getAsString());
+            try {
+                TextChannel channel = event.getGuild().getTextChannelById(canal);
+                if(components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && components.containsKey("imagem") && !components.containsKey("cargo")){
+                    channel.sendMessage("").setEmbeds(new EmbedBuilder()
+                            .setTitle(components.get("titulo"))
+                            .setDescription(components.get("descricao"))
+                            .setColor(Color.decode(components.get("cor")))
+                            .setImage(components.get("imagem"))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+                } else if (components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && !components.containsKey("imagem") && !components.containsKey("cargo")){
+                    channel.sendMessage("").setEmbeds(new EmbedBuilder()
+                            .setTitle(components.get("titulo"))
+                            .setDescription(components.get("descricao"))
+                            .setColor(Color.decode(components.get("cor")))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                }else if (components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && components.containsKey("imagem") && !components.containsKey("cargo")){
+                    channel.sendMessage("").setEmbeds(new EmbedBuilder()
+                            .setTitle(components.get("titulo"))
+                            .setDescription(components.get("descricao"))
+                            .setImage(components.get("imagem"))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                }else if (!components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && components.containsKey("imagem") && !components.containsKey("cargo")){
+                    channel.sendMessage("").setEmbeds(new EmbedBuilder()
+                            .setDescription(components.get("descricao"))
+                            .setColor(Color.decode(components.get("cor")))
+                            .setImage(components.get("imagem"))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                } else if(components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && !components.containsKey("imagem") && !components.containsKey("cargo")){
+                    channel.sendMessage("").setEmbeds(new EmbedBuilder()
+                            .setTitle(components.get("titulo"))
+                            .setDescription(components.get("descricao"))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                } else if(!components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && !components.containsKey("imagem") && !components.containsKey("cargo")) {
+                    channel.sendMessage("").setEmbeds(new EmbedBuilder()
+                            .setDescription(components.get("descricao"))
+                            .setColor(Color.decode(components.get("cor")))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                } else if(!components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && components.containsKey("imagem") && !components.containsKey("cargo")) {
+                    channel.sendMessage("").setEmbeds(new EmbedBuilder()
+                            .setDescription(components.get("descricao"))
+                            .setImage(components.get("imagem"))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                } else if(!components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && !components.containsKey("imagem") && !components.containsKey("cargo")){
+                    channel.sendMessage("").setEmbeds(new EmbedBuilder()
+                            .setDescription(components.get("descricao"))
+                            .build()).queue();
+
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                } else if(components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && components.containsKey("imagem")&& components.containsKey("cargo")){
+                    channel.sendMessage(components.get("cargo")).setEmbeds(new EmbedBuilder()
+                            .setTitle(components.get("titulo"))
+                            .setDescription(components.get("descricao"))
+                            .setColor(Color.decode(components.get("cor")))
+                            .setImage(components.get("imagem"))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+                } else if (components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && !components.containsKey("imagem") && components.containsKey("cargo")){
+                    channel.sendMessage(components.get("cargo")).setEmbeds(new EmbedBuilder()
+                            .setTitle(components.get("titulo"))
+                            .setDescription(components.get("descricao"))
+                            .setColor(Color.decode(components.get("cor")))
+                            .build()).queue();
+
+
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                }else if (components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && components.containsKey("imagem") && components.containsKey("cargo")){
+                    channel.sendMessage(components.get("cargo")).setEmbeds(new EmbedBuilder()
+                            .setTitle(components.get("titulo"))
+                            .setDescription(components.get("descricao"))
+                            .setImage(components.get("imagem"))
+                            .build()).queue();
+
+
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                }else if (!components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && components.containsKey("imagem") && components.containsKey("cargo")){
+                    channel.sendMessage(components.get("cargo")).setEmbeds(new EmbedBuilder()
+                            .setDescription(components.get("descricao"))
+                            .setColor(Color.decode(components.get("cor")))
+                            .setImage(components.get("imagem"))
+                            .build()).queue();
+
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                } else if(components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && !components.containsKey("imagem") && components.containsKey("cargo")){
+                    channel.sendMessage(components.get("cargo")).setEmbeds(new EmbedBuilder()
+                            .setTitle(components.get("titulo"))
+                            .setDescription(components.get("descricao"))
+                            .build()).queue();
+
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                } else if(!components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && !components.containsKey("imagem") && components.containsKey("cargo")) {
+                    channel.sendMessage(components.get("cargo")).setEmbeds(new EmbedBuilder()
+                            .setDescription(components.get("descricao"))
+                            .setColor(Color.decode(components.get("cor")))
+                            .build()).queue();
+
+
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                } else if(!components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && components.containsKey("imagem") && components.containsKey("cargo")) {
+                    channel.sendMessage(components.get("cargo")).setEmbeds(new EmbedBuilder()
+                            .setDescription(components.get("descricao"))
+                            .setImage(components.get("imagem"))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+
+                } else if(!components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && !components.containsKey("imagem") && components.containsKey("cargo")) {
+                    channel.sendMessage(components.get("cargo")).setEmbeds(new EmbedBuilder()
+                            .setDescription(components.get("descricao"))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    + "\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue(channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+                }
+
+            }catch (Exception e){
+                ThreadChannel channel = event.getJDA().getThreadChannelById(canal);
+                if(components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && components.containsKey("imagem") && !components.containsKey("cargo")){
+                    channel.sendMessage("").setEmbeds(new EmbedBuilder()
+                            .setTitle(components.get("titulo"))
+                            .setDescription(components.get("descricao"))
+                            .setColor(Color.decode(components.get("cor")))
+                            .setImage(components.get("imagem"))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+                } else if (components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && !components.containsKey("imagem") && !components.containsKey("cargo")){
+                    channel.sendMessage("").setEmbeds(new EmbedBuilder()
+                            .setTitle(components.get("titulo"))
+                            .setDescription(components.get("descricao"))
+                            .setColor(Color.decode(components.get("cor")))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                }else if (components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && components.containsKey("imagem") && !components.containsKey("cargo")){
+                    channel.sendMessage("").setEmbeds(new EmbedBuilder()
+                            .setTitle(components.get("titulo"))
+                            .setDescription(components.get("descricao"))
+                            .setImage(components.get("imagem"))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                }else if (!components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && components.containsKey("imagem") && !components.containsKey("cargo")){
+                    channel.sendMessage("").setEmbeds(new EmbedBuilder()
+                            .setDescription(components.get("descricao"))
+                            .setColor(Color.decode(components.get("cor")))
+                            .setImage(components.get("imagem"))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                } else if(components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && !components.containsKey("imagem") && !components.containsKey("cargo")){
+                    channel.sendMessage("").setEmbeds(new EmbedBuilder()
+                            .setTitle(components.get("titulo"))
+                            .setDescription(components.get("descricao"))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                } else if(!components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && !components.containsKey("imagem") && !components.containsKey("cargo")) {
+                    channel.sendMessage("").setEmbeds(new EmbedBuilder()
+                            .setDescription(components.get("descricao"))
+                            .setColor(Color.decode(components.get("cor")))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                } else if(!components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && components.containsKey("imagem") && !components.containsKey("cargo")) {
+                    channel.sendMessage("").setEmbeds(new EmbedBuilder()
+                            .setDescription(components.get("descricao"))
+                            .setImage(components.get("imagem"))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                } else if(!components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && !components.containsKey("imagem") && !components.containsKey("cargo")){
+                    channel.sendMessage("").setEmbeds(new EmbedBuilder()
+                            .setDescription(components.get("descricao"))
+                            .build()).queue();
+
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                } else if(components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && components.containsKey("imagem")&& components.containsKey("cargo")){
+                    channel.sendMessage(components.get("cargo")).setEmbeds(new EmbedBuilder()
+                            .setTitle(components.get("titulo"))
+                            .setDescription(components.get("descricao"))
+                            .setColor(Color.decode(components.get("cor")))
+                            .setImage(components.get("imagem"))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+                } else if (components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && !components.containsKey("imagem") && components.containsKey("cargo")){
+                    channel.sendMessage(components.get("cargo")).setEmbeds(new EmbedBuilder()
+                            .setTitle(components.get("titulo"))
+                            .setDescription(components.get("descricao"))
+                            .setColor(Color.decode(components.get("cor")))
+                            .build()).queue();
+
+
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                }else if (components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && components.containsKey("imagem") && components.containsKey("cargo")){
+                    channel.sendMessage(components.get("cargo")).setEmbeds(new EmbedBuilder()
+                            .setTitle(components.get("titulo"))
+                            .setDescription(components.get("descricao"))
+                            .setImage(components.get("imagem"))
+                            .build()).queue();
+
+
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                }else if (!components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && components.containsKey("imagem") && components.containsKey("cargo")){
+                    channel.sendMessage(components.get("cargo")).setEmbeds(new EmbedBuilder()
+                            .setDescription(components.get("descricao"))
+                            .setColor(Color.decode(components.get("cor")))
+                            .setImage(components.get("imagem"))
+                            .build()).queue();
+
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                } else if(components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && !components.containsKey("imagem") && components.containsKey("cargo")){
+                    channel.sendMessage(components.get("cargo")).setEmbeds(new EmbedBuilder()
+                            .setTitle(components.get("titulo"))
+                            .setDescription(components.get("descricao"))
+                            .build()).queue();
+
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                } else if(!components.containsKey("titulo") && components.containsKey("descricao") && components.containsKey("cor") && !components.containsKey("imagem") && components.containsKey("cargo")) {
+                    channel.sendMessage(components.get("cargo")).setEmbeds(new EmbedBuilder()
+                            .setDescription(components.get("descricao"))
+                            .setColor(Color.decode(components.get("cor")))
+                            .build()).queue();
+
+
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+                } else if(!components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && components.containsKey("imagem") && components.containsKey("cargo")) {
+                    channel.sendMessage(components.get("cargo")).setEmbeds(new EmbedBuilder()
+                            .setDescription(components.get("descricao"))
+                            .setImage(components.get("imagem"))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    +"\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue( channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+
+
+                } else if(!components.containsKey("titulo") && components.containsKey("descricao") && !components.containsKey("cor") && !components.containsKey("imagem") && components.containsKey("cargo")) {
+                    channel.sendMessage(components.get("cargo")).setEmbeds(new EmbedBuilder()
+                            .setDescription(components.get("descricao"))
+                            .build()).queue();
+
+                    EmbedBuilder successEmbed = new EmbedBuilder()
+                            .setDescription("**✅ EMBED ENVIADO COM SUCESSO!**"
+                                    + "\n\n **O Canal Serà Excluido Automaticamente em 5s!**")
+                            .setColor(Color.decode("#ffffff"));
+                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue(channnel1 -> {
+                        TextChannel textChannel = event.getGuild().getTextChannelById(idCanal);
+                        scheduler.schedule(() -> {
+                            textChannel.delete().queue(); // Exclui a mensagem após 10 segundos
+                        }, 5, TimeUnit.SECONDS);
+                    });
+
+                }
+            }
+        }
+    }
+
+    private MessageEmbed tituloModifiedEmbed(MessageEmbed originalEmbed) {
+        EmbedBuilder builder = new EmbedBuilder(originalEmbed);
+
+        // Modifying the title
+        String modifiedTitle = tituloEdit;
+        builder.setTitle(modifiedTitle);
+        components.put("titulo", modifiedTitle);
+
+        return builder.build();
+    }
+
+    private MessageEmbed descricaoModifiedEmbed(MessageEmbed originalEmbed) {
+        EmbedBuilder builder = new EmbedBuilder(originalEmbed);
+
+        // Modifying the title
+        String modifiedTitle = descricaoEdit;
+        builder.setDescription(modifiedTitle);
+        components.put("descricao", modifiedTitle);
+
+        return builder.build();
+    }
+
+    private MessageEmbed imagemModifiedEmbed(MessageEmbed originalEmbed) {
+        EmbedBuilder builder = new EmbedBuilder(originalEmbed);
+
+        // Modifying the title
+        String modifiedTitle = imageEdit;
+        builder.setImage(modifiedTitle);
+        components.put("imagem", modifiedTitle);
+
+        return builder.build();
+    }
+
+    private MessageEmbed corModifiedEmbed(MessageEmbed originalEmbed) {
+        EmbedBuilder builder = new EmbedBuilder(originalEmbed);
+
+        // Modifying the title
+        String modifiedTitle = corEdit;
+        builder.setColor(Color.decode(modifiedTitle));
+        components.put("cor", modifiedTitle);
+
+        return builder.build();
+    }
+
+
+
+    @Override
+    public void onChannelDelete(ChannelDeleteEvent event) {
+        if(event.getChannel().getId().equals(idCanal)) {
+            components.clear();
+            mensagem.clear();
+            embed.clear();
+            contador = 0;
+        }
+    }
+}
