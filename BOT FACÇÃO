@@ -1,0 +1,253 @@
+
+
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.concrete.Category;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.text.TextInput;
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import net.dv8tion.jda.api.interactions.modals.Modal;
+
+import java.awt.*;
+import java.text.Normalizer;
+import java.util.EnumSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+public class BotFacção extends ListenerAdapter {
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    public void onMessageReceived(MessageReceivedEvent event) {
+        if(event.getMessage().getContentRaw().equalsIgnoreCase("!criarregistro")) {
+            if(event.getMember().hasPermission(Permission.ADMINISTRATOR)) {
+                event.getMessage().delete().queue();
+                Emoji emoji = event.getGuild().getEmojiById("1330642036335837306");
+                Button registro = Button.secondary("registro", "Criar Registro").withEmoji(emoji);
+                event.getChannel().sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setColor(Color.decode("#ffffff"))
+                        .setDescription("## CRIAR REGISTRO <a:fogobranco:1330642036335837306>"
+                                + "\n\n > **Para se Registrar, Basta Clicar no Botão Abaixo e **"
+                                + "\n > **Preencher os Campos Necessários.**")
+                        .setThumbnail("https://cdn.discordapp.com/attachments/1102285791000010833/1328836223837540383/rk_bots_logo.png?ex=678b726c&is=678a20ec&hm=fd524a10730cf8670d8989a89380e1094ec0d73c85f328c66fb0a598a7be95b5&")
+                        .build()).setActionRow(registro).queue();
+            } else {
+                event.getMessage().delete().queue();
+                event.getMessage().reply("")
+                        .setEmbeds(new EmbedBuilder()
+                                .setDescription("❌ **COMANDO RESTRITO PARA ADMINISTRADORES!**")
+                                .setColor(Color.decode("#ffffff"))
+                                .build())
+                        .queue(message1 -> {
+                            scheduler.schedule(() -> {
+                                message1.delete().queue(); // Exclui a mensagem após 10 segundos
+                            }, 10, TimeUnit.SECONDS);
+                        });
+
+            }
+        }
+    }
+
+    @Override
+    public void onButtonInteraction(ButtonInteractionEvent event) {
+        if(event.getComponentId().equals("registro")) {
+            Modal modal = Modal.create("registro", "REGISTRO")
+                    .addActionRow(
+                            TextInput.create("id", "Digite Qual o seu ID na cidade", TextInputStyle.SHORT)
+                                    .setRequiredRange(1, 10)
+                                    .build()
+                    ).addActionRow(
+                            TextInput.create("nome", "Digite Qual o seu nome na cidade", TextInputStyle.SHORT)
+                                    .setRequiredRange(1, 100)
+                                    .build()
+                    ).addActionRow(
+                            TextInput.create("indicacao", "Digite o nome de quem te recrutou", TextInputStyle.SHORT)
+                                    .setRequiredRange(1, 100)
+                                    .build()
+                    )
+                    .build();
+            event.replyModal(modal).queue();
+        }
+
+        if(event.getComponentId().equals("aprovar")){
+            if(event.getMember().hasPermission(Permission.ADMINISTRATOR)) {
+                Button aprovar = Button.success("aprovar", "✅ Validar").asDisabled();
+                Button negar = Button.danger("negar", "❌ Negar").asDisabled();
+                event.getMessage().editMessageComponents(ActionRow.of(aprovar, negar)).queue();
+
+                String descricaoEmbed = event.getMessage().getEmbeds().get(0).getDescription();
+                String[] linhas = descricaoEmbed.split("\n");
+                String idDiscord = null;
+                String idCidade = null;
+                String nomeUsuario = null;
+                for (int i = 0; i < linhas.length; i++){
+                    if (linhas[i].startsWith("U", 3)){
+                        idDiscord = linhas[i].replaceAll("[^\\d]", "");
+                    }else if(linhas[i].startsWith("I", 3)){
+                        idCidade = linhas[i].replaceAll("[^\\d]", "");
+                    }else if(linhas[i].startsWith("N", 3)){
+                        String[] part = linhas[i].split("`");
+                        nomeUsuario = part[1].replaceAll("`", "");
+                    }
+                }
+                if (idCidade == null || nomeUsuario == null){
+                    event.reply("").setEmbeds(new EmbedBuilder()
+                            .setColor(Color.decode("#ffffff"))
+                            .setDescription("**❌ INFORMAÇÕES INVÁLIDAS, PEÇA PARA ELE REFAZER O REGISTRO**")
+                            .build()).setEphemeral(true).queue();
+                    return;
+                }
+                TextChannel canalRegistro = event.getGuild().getTextChannelById("1245106219769925652");
+                Member membro = event.getGuild().getMemberById(idDiscord);
+                Role cargoMembro = event.getGuild().getRoleById("1235666624326008873");
+                Category category = event.getGuild().getCategoryById("1275506239522214002");
+                String novoNome = nomeUsuario + " | " + idCidade;
+                String name = sanitizeUserName(membro.getUser().getName());
+                String channelName = name + "・" + idCidade;
+
+                canalRegistro.sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setColor(Color.decode("#ffffff"))
+                        .setDescription("## MEMBRO APROVADO <a:Nexus_Check:1328881579547820105>" + "\n"
+                                +"### __MEMBRO:__" + "\n"
+                                +"<:setaRKBots:1329103747720151043> " + membro.getAsMention() + " `[ " + membro.getUser().getName() + " / " + membro.getId() + " ]`\n\n"
+                                + "-# <:Logoredonda:1328847788141973544> **Aprovado por: **" + event.getInteraction().getMember().getAsMention())
+                        .setColor(Color.decode("#ffffff"))
+                        .setThumbnail("https://cdn.discordapp.com/attachments/1102285791000010833/1328836223837540383/rk_bots_logo.png?ex=678826ac&is=6786d52c&hm=5315ea7117f16d6baa6200b53f4413e721bd7ed0f64d2329678da6585169e3e8&")
+                        .build()).queue();
+
+                membro.getUser().openPrivateChannel().queue((channel1 -> {
+                    channel1.sendMessage("").setEmbeds(new EmbedBuilder()
+                            .setDescription("**VOCÊ FOI APROVADO <a:Nexus_Check:1328881579547820105>**"
+                                    + "\n\n **Olá **" + membro.getAsMention()
+                                    + "\n **Seu registro na facção foi aprovado!**")
+                            .setColor(Color.decode("#ffffff"))
+                            .build()).queue();
+                }));
+
+
+                membro.modifyNickname(novoNome).queue(success -> event.getGuild().addRoleToMember(membro, cargoMembro).queue());
+                category.createTextChannel(channelName)
+                        .addPermissionOverride(membro, EnumSet.of(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MESSAGE_ATTACH_FILES, Permission.MESSAGE_HISTORY), EnumSet.noneOf(Permission.class))
+                        .addPermissionOverride(event.getGuild().getPublicRole(), EnumSet.noneOf(Permission.class), EnumSet.of(Permission.VIEW_CHANNEL))
+                        .queue();
+
+                event.reply("").setEmbeds(new EmbedBuilder()
+                        .setColor(Color.decode("#ffffff"))
+                        .setDescription("**✅ MEMBRO REGISTRADO COM SUCESSO**")
+                        .build()).setEphemeral(true).queue();
+            }
+        }
+
+        if(event.getComponentId().equals("negar")){
+            if(event.getMember().hasPermission(Permission.ADMINISTRATOR)) {
+
+                Modal modal = Modal.create("motivo", "Motivo")
+                        .addActionRow(
+                                TextInput.create("motivo", "Digite Qual o motivo", TextInputStyle.PARAGRAPH)
+                                        .setRequiredRange(1, 1000)
+                                        .build()
+                        )
+                        .build();
+                event.replyModal(modal).queue();
+
+            }
+        }
+    }
+
+    @Override
+    public void onModalInteraction(ModalInteractionEvent event) {
+        if(event.getModalId().equals("registro")){
+            String id = (event.getValue("id").getAsString());
+            String nome = (event.getValue("nome").getAsString());
+            String indicacao = (event.getValue("indicacao").getAsString());
+            TextChannel canalRegistro = event.getGuild().getTextChannelById("1245099736592023703");
+            Button aprovar = Button.success("aprovar", "✅ Validar");
+            Button negar = Button.danger("negar", "❌ Negar");
+
+            if (!id.matches("\\d+")) { // Verifica se contém apenas dígitos
+                event.reply("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**❌ DIGITE UM ID VÁLIDO!**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).setEphemeral(true).queue();
+                return;
+            }
+            canalRegistro.sendMessage("").setEmbeds(new EmbedBuilder()
+                    .setColor(Color.decode("#ffffff"))
+                    .setDescription("## CONFIRMAR REGISTRO  <a:LoadingRkBots:1330006634923032628>"
+                            + "\n\n **Usuário: **" + event.getInteraction().getMember().getAsMention()
+                            + "\n **Nome na Cidade:** " + "`" + nome + "`"
+                            + "\n **ID do Usuário:** " + "`" + id + "`"
+                            + "\n **Quem Recrutou:** " + "`" + indicacao + "`")
+                    .setThumbnail("https://cdn.discordapp.com/attachments/1102285791000010833/1328836223837540383/rk_bots_logo.png?ex=678b726c&is=678a20ec&hm=fd524a10730cf8670d8989a89380e1094ec0d73c85f328c66fb0a598a7be95b5&")
+                    .build()).setActionRow(aprovar, negar).queue();
+
+            event.reply("").setEmbeds(new EmbedBuilder()
+                    .setColor(Color.decode("#ffffff"))
+                    .setDescription("**✅ REGISTRO FINALIZADO COM SUCESSO**")
+                    .build()).setEphemeral(true).queue();
+        }
+
+        if(event.getModalId().equals("motivo")){
+            Button aprovar = Button.success("aprovar", "✅ Validar").asDisabled();
+            Button negar = Button.danger("negar", "❌ Negar").asDisabled();
+            event.getMessage().editMessageComponents(ActionRow.of(aprovar, negar)).queue();
+
+            String descricaoEmbed = event.getMessage().getEmbeds().get(0).getDescription();
+            String[] linhas = descricaoEmbed.split("\n");
+            String idDiscord = null;
+            for (int i = 0; i < linhas.length; i++){
+                if (linhas[i].startsWith("U", 3)){
+                    idDiscord = linhas[i].replaceAll("[^\\d]", "");
+                }
+            }
+            String motivo = (event.getValue("motivo").getAsString());
+            Member membro = event.getGuild().getMemberById(idDiscord);
+            TextChannel channel = event.getGuild().getTextChannelById("1245106219769925652");
+            channel.sendMessage("").setEmbeds(new EmbedBuilder()
+                    .setDescription("## MEMBRO REPROVADO <a:nexus_negar:1328881650431561830>" + "\n"
+                            +"### __MEMBRO:__" + "\n"
+                            +"<:setaRKBots:1329103747720151043> " + membro.getAsMention() + " `[ " + membro.getUser().getName() + " / " + membro.getId() + " ]`" + "\n"
+                            +"### __MOTIVO:__" + "\n"
+                            +"<:setaRKBots:1329103747720151043> `" + motivo + "` \n\n"
+                            + "-# <:Logoredonda:1328847788141973544> **Reprovado por: **" + event.getInteraction().getMember().getAsMention())
+                    .setColor(Color.decode("#ffffff"))
+                    .setThumbnail("https://cdn.discordapp.com/attachments/1102285791000010833/1328836223837540383/rk_bots_logo.png?ex=678826ac&is=6786d52c&hm=5315ea7117f16d6baa6200b53f4413e721bd7ed0f64d2329678da6585169e3e8&")
+                    .build()).queue();
+
+            membro.getUser().openPrivateChannel().queue((channel1 -> {
+                channel1.sendMessage("").setEmbeds(new EmbedBuilder()
+                        .setDescription("**VOCÊ FOI REPROVADO <a:nexus_negar:1328881650431561830>**"
+                                + "\n\n **Olá **" + membro.getAsMention()
+                                + "\n **Infelizmente Seu registro na facção foi reprovado!**")
+                        .setColor(Color.decode("#ffffff"))
+                        .build()).queue();
+            }));
+
+
+            event.reply("").setEmbeds(new EmbedBuilder()
+                    .setColor(Color.decode("#ffffff"))
+                    .setDescription("**✅ MEMBRO NEGADO COM SUCESSO**")
+                    .build()).setEphemeral(true).queue();
+
+        }
+    }
+
+    public static String sanitizeUserName(String userName) {
+        // Remove acentos e outros diacríticos
+        String normalized = Normalizer.normalize(userName, Normalizer.Form.NFD);
+        String withoutAccents = normalized.replaceAll("\\p{M}", "");
+
+        // Remove caracteres especiais
+        String sanitized = withoutAccents.replaceAll("[^a-zA-Z0-9]", "");
+
+        return sanitized.toLowerCase(); // Torna o nome minúsculo
+    }
+
+}
