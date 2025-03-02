@@ -1,0 +1,170 @@
+
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.concrete.Category;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.text.TextInput;
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import net.dv8tion.jda.api.interactions.modals.Modal;
+
+import java.awt.*;
+import java.text.Normalizer;
+import java.util.EnumSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+public class BotEdits extends ListenerAdapter {
+    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+    @Override
+    public void onMessageReceived(MessageReceivedEvent event) {
+        if (event.getMessage().getContentRaw().equalsIgnoreCase("!criarticket")) {
+            if (event.getMember().hasPermission(Permission.ADMINISTRATOR)) {
+                String idChanel = event.getChannel().getId();
+                TextChannel ticketChannel = event.getJDA().getTextChannelById(idChanel);
+                event.getMessage().delete().queue();
+                if (event.getAuthor().isBot()) {
+                    return;
+                }
+
+                Button button3 = Button.secondary("loja", "\uD83D\uDED2 LOJA");
+
+                EmbedBuilder embed = new EmbedBuilder()
+                        .setColor(Color.decode("#ffffff"))
+                        .setImage("https://cdn.discordapp.com/attachments/1102285791000010833/1290039472645210112/banner_Neutro.png?ex=67779822&is=677646a2&hm=f49f8aad070d0f9b670286fbd3065bf6ccfb345ab13e14c436089b8d5a003f48&")
+                        .setDescription("## <a:livroAnimadoRkBots:1329164576092327950>  SISTEMA DE TICKETS"
+                                + "\n > Seja bem-vindo(a) ao nosso sistema de tickets. Por favor, evite"
+                                + "\n > abrir tickets sem motivos relevantes ou realizar marcações"
+                                + "\n > excessivas, pois isso poderá acarretar em punições.");
+                ticketChannel.sendMessageEmbeds(embed.build()).addActionRow(button3).queue();
+            } else {
+                event.getMessage().reply("")
+                        .setEmbeds(new EmbedBuilder()
+                                .setDescription(" **❌ COMANDO RESTRITO PARA ADMINISTRADOES!**")
+                                .setColor(Color.decode("#ffffff"))
+                                .build())
+                        .queue(message1 -> {
+                            scheduler.schedule(() -> {
+                                message1.delete().queue(); // Exclui a mensagem após 10 segundos
+                            }, 3, TimeUnit.SECONDS);
+                        });
+                event.getMessage().delete().queue();
+            }
+        } // fim do bot de ticket
+    }
+
+    @Override
+    public void onButtonInteraction(ButtonInteractionEvent event) {
+        if (event.getComponentId().equals("ticket")) {
+            Button excluirTicket = Button.danger("delete", "❌ Finalizar Ticket");
+            Button mensagemPrivado = Button.secondary("mensagem", "\uD83D\uDD14 Notificar Membro");
+            Guild guild = event.getGuild();
+            String userFirstName = event.getUser().getName().split(" ")[0].toLowerCase();
+            String interactionChannelName = "\uD83D\uDCADsuporte-" + userFirstName;
+            Category category = event.getGuild().getCategoryById("1329212820058804304");
+
+            for (GuildChannel channel : guild.getChannels()) {
+                if (channel instanceof TextChannel) {
+                    TextChannel textChannel = (TextChannel) channel;
+                    if (textChannel.getName().equals(interactionChannelName)) {
+                        EmbedBuilder errorEmbed = new EmbedBuilder()
+                                .setDescription("**❌ VOCÊ JÁ POSSUI UM TICKET ABERTO! **" + textChannel.getAsMention())
+                                .setColor(Color.decode("#ffffff"));
+                        event.replyEmbeds(errorEmbed.build()).setEphemeral(true).queue();
+                        return;
+                    }
+                }
+            }
+
+            guild.createTextChannel(interactionChannelName, category)
+                    .addPermissionOverride(event.getMember(), EnumSet.of(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MESSAGE_ATTACH_FILES), EnumSet.noneOf(Permission.class))
+                    .addPermissionOverride(guild.getPublicRole(), EnumSet.noneOf(Permission.class), EnumSet.of(Permission.VIEW_CHANNEL))
+                    .queue(channel -> {
+                        channel.sendMessage(event.getUser().getAsMention())
+                                .setEmbeds(new EmbedBuilder()
+                                        .setDescription("**\uD83D\uDD14┃Olá **" + event.getInteraction().getMember().getAsMention() + "!** Seja bem vindo(a) ao seu Ticket.**"
+                                                + "\n\n **\uD83D\uDEA8┃Evite marcações desnecessárias**, nossa equipe já foi notificada sobre a abertura do Ticket"
+                                                + "\n\n ⚡┃Adiante o assunto do ticket para que nossa equipe possa ajudá-lo o mais rápido possível.")
+                                        .setColor(Color.decode("#ffffff"))
+                                        .build())
+                                .addActionRow(excluirTicket, mensagemPrivado)
+                                .queue(message -> {
+                                    message.pin().queue(); // Fixa a mensagem no canal
+                                    String asMention = channel.getAsMention();
+                                    EmbedBuilder successEmbed = new EmbedBuilder()
+                                            .setDescription("**✅ SEU TICKET FOI CRIADO COM SUCESSO **" + asMention)
+                                            .setColor(Color.decode("#ffffff"));
+                                    event.replyEmbeds(successEmbed.build()).setEphemeral(true).queue();
+                                });
+                    });
+        }
+
+        if (event.getComponentId().equals("mensagem")) {
+            if (event.getMember().hasPermission(Permission.ADMINISTRATOR)) {
+                event.getChannel().getHistoryFromBeginning(1).queue(history -> {
+                    Message firstMessage = history.getRetrievedHistory().get(0);
+                    String content = firstMessage.getContentRaw();
+                    String temporario = content.replace("<@", "");
+                    String idMembro = temporario.replace(">", "");
+                    Member membro = event.getGuild().getMemberById(idMembro);
+                    String originalChannelId = event.getChannel().getId(); // Obtém o ID do canal original
+                    String originalChannelLink = "https://discord.com/channels/" + event.getGuild().getId() + "/" + originalChannelId; // Cria o link do canal original
+                    Button linkChannel = Button.link(originalChannelLink, "Visualizar Ticket");
+                    membro.getUser().openPrivateChannel().queue((channel1 -> {
+                        channel1.sendMessage("").setEmbeds(new EmbedBuilder()
+                                .setDescription("### NOTIFICAÇÃO TICKET \uD83C\uDFAB"
+                                        + "\n > **Parece que Você tem um Ticket Aberto!**"
+                                        + "\n > **Estamos esperando a sua resposta no Ticket!**")
+                                .setColor(Color.decode("#ffffff"))
+                                .build()).setActionRow(linkChannel).queue(
+                                success -> {
+                                    event.getChannel().sendMessageEmbeds(new EmbedBuilder()
+                                            .setDescription("**✅ MEMBRO NOTIFICADO COM SUCESSO!**")
+                                            .setColor(Color.decode("#ffffff"))
+                                            .build()).queue();
+                                },
+                                failure -> {
+                                    event.getChannel().sendMessageEmbeds(new EmbedBuilder()
+                                            .setDescription("**❌ ERRO! O MEMBRO NÃO ACEITA NOTIFICAÇÕES!**")
+                                            .setColor(Color.decode("#ffffff"))
+                                            .build()).queue();
+                                }
+                        );
+                    }));
+                });
+
+            } else {
+                event.reply("")
+                        .setEmbeds(new EmbedBuilder()
+                                .setDescription("**❌ COMANDO RESTRITO PARA ADMINISTRADOES!**")
+                                .setColor(Color.decode("#ffffff"))
+                                .build())
+                        .setEphemeral(true).queue();
+            }
+        }
+
+        if (event.getComponentId().equals("delete")) {
+            if (event.getInteraction().getMember().hasPermission(Permission.ADMINISTRATOR)) {
+                event.getChannel().delete().queue();
+            } else {
+                event.reply("")
+                        .setEmbeds(new EmbedBuilder()
+                                .setDescription("**❌ COMANDO RESTRITO PARA ADMINISTRADOES!**")
+                                .setColor(Color.decode("#ffffff"))
+                                .build())
+                        .setEphemeral(true).queue();
+            }
+        }
+
+    }
+}
