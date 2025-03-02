@@ -1,0 +1,215 @@
+
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageHistory;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.LayoutComponent;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.text.TextInput;
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import net.dv8tion.jda.api.interactions.modals.Modal;
+
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+public class BotCampeoanto extends ListenerAdapter {
+    private String primeirolugar = null;
+    private String segundolugar = null;
+    private String mvp = null;
+    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    @Override
+    public void onMessageReceived(MessageReceivedEvent event) {
+        if (event.getMessage().getContentRaw().startsWith("!criarcampeonato")) {
+            event.getMessage().delete().queue();
+            if (event.getMessage().getAuthor().isBot()) {
+                return;
+            }
+            if (event.getMessage().getMember().hasPermission(Permission.ADMINISTRATOR)) {
+                String idChannel = event.getChannel().getId();
+                Button buttonPremiacao = Button.secondary("criarpremiacao", "\uD83D\uDCB5 CRIAR PREMIAÇÃO");
+                Button buttonCampeonato = Button.secondary("criarcampeonato", "⚔\uFE0F CRIAR CAMPEONATO");
+                TextChannel registroChannel = event.getJDA().getTextChannelById(idChannel);
+                EmbedBuilder embed = new EmbedBuilder()
+                        .setColor(Color.decode("#ffffff"))
+                        .setImage("https://cdn.discordapp.com/attachments/1102285791000010833/1290039472645210112/banner_Neutro.png?ex=67779822&is=677646a2&hm=f49f8aad070d0f9b670286fbd3065bf6ccfb345ab13e14c436089b8d5a003f48&")
+                        .setDescription("**CRIAR PREMIACÃO**"
+                                + "\n\n > **Para Criar uma Nova Premiação, Basta Clicar**" + "\n> **no Botão \"CRIAR PREMIAÇÃO\"**"
+                                + "\n\n**CRIAR CAMPEONATO**"
+                                + "\n\n > **Para Criar um Novo Campeonato, Basta Clicar**" + "\n> **no Botão \"CRIAR CAMPEONATO\"**");
+                registroChannel.sendMessageEmbeds(embed.build()).setActionRow(buttonPremiacao, buttonCampeonato).queue();
+            } else {
+                event.getMessage().reply("")
+                        .setEmbeds(new EmbedBuilder()
+                                .setDescription("❌ **COMANDO RESTRITO PARA ADMINISTRADOES!**")
+                                .setColor(Color.decode("#ffffff"))
+                                .build())
+                        .queue(message1 -> {
+                            scheduler.schedule(() -> {
+                                message1.delete().queue(); // Exclui a mensagem após 10 segundos
+                            }, 3, TimeUnit.SECONDS);
+                        });
+                event.getMessage().delete().queue();
+            }
+
+
+        }
+    }
+
+    @Override
+    public void onButtonInteraction(ButtonInteractionEvent event) {
+        if (event.getComponentId().equals("criarpremiacao")) {
+            if(event.getMember().hasPermission(Permission.ADMINISTRATOR)) {
+                Modal modal = Modal.create("criarpremiacao", "CriarPremiacao")
+                        .addActionRow(
+                                TextInput.create("primeirolugar", "Digite a premiacao do 1 lugar", TextInputStyle.SHORT)
+                                        .setRequiredRange(1, 100)
+                                        .build()
+                        ).addActionRow(
+                                TextInput.create("segundolugar", "Digite a premiacao do 2 lugar", TextInputStyle.SHORT)
+                                        .setRequiredRange(1, 100)
+                                        .build()
+                        ).addActionRow(
+                                TextInput.create("mvp", "Digite a premiacao do MVP", TextInputStyle.SHORT)
+                                        .setRequiredRange(1, 100)
+                                        .build()
+                        )
+                        .build();
+                event.replyModal(modal).queue();
+
+
+            } else {
+                event.reply("")
+                        .setEmbeds(new EmbedBuilder()
+                                .setDescription("❌ **COMANDO RESTRITO PARA ADMINISTRADOES!**")
+                                .setColor(Color.decode("#ffffff"))
+                                .build())
+                        .setEphemeral(true).queue();
+            }
+        }
+
+        if(event.getComponentId().equalsIgnoreCase("criarcampeonato")){
+            if(event.getMember().hasPermission(Permission.ADMINISTRATOR)){
+                Modal criarCampeonato = Modal.create("criarcampeonato", "Criarcampeonato")
+                        .addActionRow(
+                                TextInput.create("data", "Digite qual sera a data do Campeonato", TextInputStyle.SHORT)
+                                        .setRequiredRange(1, 100)
+                                        .build()
+                        ).addActionRow(
+                                TextInput.create("horario", "Digite qual sera o horario do Campeonato", TextInputStyle.SHORT)
+                                        .setRequiredRange(1, 100)
+                                        .build()
+                        ).addActionRow(
+                                TextInput.create("inscricao", "Digite qual sera o valor da Inscrição", TextInputStyle.SHORT)
+                                        .setRequiredRange(1, 100)
+                                        .build()
+                        ).addActionRow(
+                                TextInput.create("quedas", "Digite quantas quedas teram o Campeonato ", TextInputStyle.SHORT)
+                                        .setRequiredRange(1, 100)
+                                        .build()
+                        ).addActionRow(
+                                TextInput.create("veiculo", "Digite qual sera o veiculo ultilizado", TextInputStyle.SHORT)
+                                        .setRequiredRange(1, 100)
+                                        .build()
+                        )
+                        .build();
+                event.replyModal(criarCampeonato).queue();
+
+
+            }else {
+                event.reply("")
+                        .setEmbeds(new EmbedBuilder()
+                                .setDescription("❌ **COMANDO RESTRITO PARA ADMINISTRADOES!**")
+                                .setColor(Color.decode("#ffffff"))
+                                .build())
+                        .setEphemeral(true).queue();
+            }
+        } // final da implementacao do campeonato
+    }
+
+    @Override
+    public void onModalInteraction(ModalInteractionEvent event) {
+        if (event.getModalId().equals("criarpremiacao")) {
+            primeirolugar = (event.getValue("primeirolugar").getAsString());
+            segundolugar = (event.getValue("segundolugar").getAsString());
+            mvp = (event.getValue("mvp").getAsString());
+
+
+            EmbedBuilder premiacaoCriadaComSucesso = new EmbedBuilder()
+                    .setDescription("**✅ PREMIAÇÃO CRIADA COM SUCESSO**")
+                    .setColor(Color.decode("#ffffff"));
+            event.replyEmbeds(premiacaoCriadaComSucesso.build()).setEphemeral(true).queue();
+        }
+
+        if (event.getModalId().equals("criarcampeonato")) {
+            StringBuilder valor = new StringBuilder();
+            String data = (event.getValue("data").getAsString());
+            String horario = (event.getValue("horario").getAsString());
+            String inscricao = (event.getValue("inscricao").getAsString());
+            String quedas = (event.getValue("quedas").getAsString());
+            String veiculo = (event.getValue("veiculo").getAsString());
+            String[] formatar = inscricao.split("");
+            for (String caracter : formatar){
+                if(caracter.matches("[\\d.,]+")){
+                    valor.append(caracter);
+                }
+            }
+            TextChannel campeonatoChannel = event.getJDA().getTextChannelById("1320602509332709427");
+
+
+            MessageHistory history = campeonatoChannel.getHistory();
+            java.util.List<Message> messages = history.retrievePast(20).complete();
+
+            for (Message msg : messages) {
+                if (!msg.getButtons().isEmpty()) { // Verifica se há botões na mensagem
+                    java.util.List<LayoutComponent> components = new ArrayList<>();
+
+                    // Desabilita os botões
+                    for (ActionRow row : msg.getActionRows()) {
+                        List<Button> disabledButtons = new ArrayList<>();
+                        for (Button button : row.getButtons()) {
+                            disabledButtons.add(button.asDisabled());
+                        }
+                        components.add(ActionRow.of(disabledButtons));
+                    }
+
+                    // Edita a mensagem para desabilitar os botões
+                    msg.editMessageEmbeds(msg.getEmbeds())
+                            .setComponents(components)
+                            .queue();
+
+                    break; // Desabilita apenas a última mensagem com botões e para o loop
+                }
+            }
+
+            campeonatoChannel.sendMessage("||@everyone||")
+                    .setEmbeds(new EmbedBuilder()
+                            .setDescription("### \uD83C\uDFC6┃CAMPEONATO RK BOTS"
+                                    + "\n **\uD83D\uDDD3\uFE0F┃Data:** " + data
+                                    + "\n **\uD83C\uDFAF┃Horario:** " + horario
+                                    + "\n **\uD83D\uDCB8┃Valor da Inscrição:** " + inscricao
+                                    + "\n **\uD83D\uDE80┃Veículos Utilizados:** " + veiculo
+                                    + "\n **\uD83E\uDE82┃Serão Apenas:** " + quedas + " Quedas! \n"
+                                    + "### \uD83D\uDCB0┃PREMIAÇÃO"
+                                    + "\n **\uD83E\uDD47┃1º Lugar:** " + primeirolugar
+                                    + "\n **\uD83E\uDD48┃2º Lugar:** " + segundolugar
+                                    + "\n **\uD83D\uDC51┃MVP:** " + mvp)
+                            .setImage("https://cdn.discordapp.com/attachments/1102285791000010833/1290039472645210112/banner_Neutro.png?ex=67779822&is=677646a2&hm=f49f8aad070d0f9b670286fbd3065bf6ccfb345ab13e14c436089b8d5a003f48&")
+                            .setColor(Color.decode("#ffffff"))
+                            .build()).queue();
+            EmbedBuilder campeonato = new EmbedBuilder()
+                    .setDescription("**CAMPEONATO CRIADO COM SUCESSO**")
+                    .setColor(Color.decode("#ffffff"));
+            event.replyEmbeds(campeonato.build()).setEphemeral(true).queue();
+        } // final da implementacao do campeonato
+    }
+}
